@@ -1,0 +1,1247 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rekap Berita — Media Monitoring</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Instrument+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* ============================================================
+   RESET & TOKENS
+============================================================ */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg:       #080b12;
+  --s0:       #0d1120;
+  --s1:       #111827;
+  --s2:       #182030;
+  --s3:       #1e2840;
+  --border:   #1f2d45;
+  --border2:  #263554;
+
+  --blue:     #3b82f6;
+  --blue-dim: rgba(59,130,246,.12);
+  --blue-bd:  rgba(59,130,246,.28);
+  --teal:     #06b6d4;
+  --teal-dim: rgba(6,182,212,.10);
+  --green:    #22c55e;
+  --green-dim:rgba(34,197,94,.10);
+  --green-bd: rgba(34,197,94,.25);
+  --amber:    #f59e0b;
+  --amber-dim:rgba(245,158,11,.10);
+  --red:      #ef4444;
+  --red-dim:  rgba(239,68,68,.08);
+  --red-bd:   rgba(239,68,68,.25);
+  --violet:   #8b5cf6;
+  --violet-dim:rgba(139,92,246,.10);
+
+  --text:  #e2e8f0;
+  --text2: #94a3b8;
+  --text3: #64748b;
+  --muted: #3a4a65;
+
+  --mono: 'IBM Plex Mono', monospace;
+  --sans: 'Instrument Sans', sans-serif;
+
+  --radius: 8px;
+  --radius-lg: 12px;
+}
+
+html, body { height: 100%; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--sans);
+  font-size: 14px;
+  line-height: 1.5;
+  overflow: hidden;
+}
+
+/* scrollbar */
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 4px; }
+
+/* ============================================================
+   LAYOUT
+============================================================ */
+.app { display: grid; grid-template-rows: 52px 1fr; height: 100vh; }
+
+/* TOP BAR */
+.topbar {
+  background: var(--s1);
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 20px;
+  position: relative; z-index: 100;
+}
+.topbar-left { display: flex; align-items: center; gap: 14px; }
+.app-logo {
+  font-family: var(--mono); font-size: 14px; font-weight: 600;
+  color: var(--text); letter-spacing: -0.3px;
+  display: flex; align-items: center; gap: 8px;
+}
+.app-logo .dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--blue); box-shadow: 0 0 8px var(--blue);
+  animation: pulse 2s infinite;
+}
+@keyframes pulse { 0%,100%{ opacity:1; } 50%{ opacity:.4; } }
+
+.topbar-badge {
+  font-family: var(--mono); font-size: 11px;
+  background: var(--blue-dim); color: var(--blue);
+  border: 1px solid var(--blue-bd); padding: 2px 10px; border-radius: 20px;
+}
+.topbar-right { display: flex; gap: 8px; }
+
+/* BODY LAYOUT */
+.body { display: grid; grid-template-columns: 300px 1fr; height: calc(100vh - 52px); overflow: hidden; }
+
+/* ============================================================
+   SIDEBAR
+============================================================ */
+.sidebar {
+  background: var(--s1);
+  border-right: 1px solid var(--border);
+  display: flex; flex-direction: column;
+  overflow: hidden;
+}
+.sb-scroll { flex: 1; overflow-y: auto; display: flex; flex-direction: column; }
+
+.sb-section { padding: 14px 16px; border-bottom: 1px solid var(--border); }
+.sb-head {
+  font-family: var(--mono); font-size: 10px; color: var(--text3);
+  text-transform: uppercase; letter-spacing: 1.5px;
+  margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between;
+}
+.sb-head-count { color: var(--blue); }
+
+/* ============================================================
+   FORM ELEMENTS
+============================================================ */
+.fg { margin-bottom: 9px; }
+.fg:last-child { margin-bottom: 0; }
+.fg label {
+  display: block; font-size: 10px; font-family: var(--mono);
+  color: var(--text3); text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 4px;
+}
+.fg input, .fg select, .fg textarea {
+  width: 100%; background: var(--s2); border: 1px solid var(--border);
+  color: var(--text); padding: 7px 10px; border-radius: var(--radius);
+  font-size: 12px; font-family: var(--sans); outline: none;
+  transition: border-color .15s;
+}
+.fg input:focus, .fg select:focus { border-color: var(--blue); }
+.fg select option { background: var(--s2); }
+
+/* media type toggle */
+.media-type-toggle { display: flex; gap: 6px; margin-bottom: 9px; }
+.mtt-btn {
+  flex: 1; padding: 6px; border-radius: var(--radius);
+  border: 1px solid var(--border); background: var(--s2);
+  color: var(--text2); font-family: var(--mono); font-size: 11px; font-weight: 500;
+  cursor: pointer; text-align: center; transition: all .15s; user-select: none;
+}
+.mtt-btn.active-cetak { border-color: var(--amber); color: var(--amber); background: var(--amber-dim); }
+.mtt-btn.active-online { border-color: var(--teal); color: var(--teal); background: var(--teal-dim); }
+
+/* autocomplete wrapper */
+.ac-wrap { position: relative; }
+.ac-list {
+  position: absolute; top: calc(100% + 3px); left: 0; right: 0;
+  background: var(--s3); border: 1px solid var(--border2); border-radius: var(--radius);
+  z-index: 50; max-height: 150px; overflow-y: auto;
+  box-shadow: 0 8px 24px rgba(0,0,0,.4);
+  display: none;
+}
+.ac-list.open { display: block; }
+.ac-item {
+  padding: 7px 11px; font-size: 12px; cursor: pointer; transition: background .1s;
+  display: flex; align-items: center; gap: 8px;
+}
+.ac-item:hover { background: var(--blue-dim); }
+.ac-type-dot {
+  width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0;
+}
+.dot-cetak { background: var(--amber); }
+.dot-online { background: var(--teal); }
+
+/* kode selector A-Z */
+.kode-az-grid {
+  display: grid; grid-template-columns: repeat(6, 1fr); gap: 4px;
+}
+.kaz-item { position: relative; }
+.kaz-item input { display: none; }
+.kaz-item label {
+  display: flex; align-items: center; justify-content: center;
+  height: 26px; border-radius: 5px; cursor: pointer;
+  font-family: var(--mono); font-size: 11px; font-weight: 600;
+  background: var(--s2); border: 1px solid var(--border2);
+  color: var(--text3); transition: all .15s; user-select: none;
+}
+.kaz-item input:checked + label {
+  background: var(--blue-dim); border-color: var(--blue); color: var(--blue);
+}
+.kaz-item label:hover { border-color: var(--border2); color: var(--text2); }
+
+/* kegiatan list */
+.keg-list { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 5px; padding: 12px 16px; }
+.keg-card {
+  background: var(--s2); border: 1px solid var(--border);
+  border-radius: var(--radius); overflow: hidden;
+}
+.keg-date-header {
+  background: var(--s3); padding: 5px 10px;
+  display: flex; align-items: center; justify-content: space-between;
+  border-bottom: 1px solid var(--border);
+}
+.keg-date-str { font-family: var(--mono); font-size: 10px; color: var(--text3); }
+.keg-rows { display: flex; flex-direction: column; }
+.keg-row {
+  display: flex; align-items: center; gap: 8px; padding: 6px 10px;
+  border-bottom: 1px solid rgba(31,45,69,.5);
+}
+.keg-row:last-child { border-bottom: none; }
+.keg-kode-badge {
+  font-family: var(--mono); font-size: 10px; font-weight: 600;
+  padding: 1px 6px; border-radius: 4px; flex-shrink: 0;
+  border: 1px solid;
+}
+.keg-nama { font-size: 11px; color: var(--text2); flex: 1; line-height: 1.4; }
+.del-btn {
+  background: none; border: none; cursor: pointer; color: var(--muted);
+  font-size: 12px; padding: 2px 5px; border-radius: 4px; line-height: 1;
+  transition: all .15s; flex-shrink: 0;
+}
+.del-btn:hover { color: var(--red); background: var(--red-dim); }
+
+/* ============================================================
+   MAIN CONTENT
+============================================================ */
+.content { display: flex; flex-direction: column; overflow: hidden; }
+
+/* tab bar */
+.tabbar {
+  padding: 10px 20px 0;
+  display: flex; gap: 2px; border-bottom: 1px solid var(--border);
+  background: var(--s1);
+}
+.tab-btn {
+  padding: 7px 18px 9px; font-size: 12px; font-weight: 600;
+  cursor: pointer; border: none; background: none; color: var(--text3);
+  position: relative; transition: color .15s; font-family: var(--sans);
+}
+.tab-btn::after {
+  content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 2px;
+  background: var(--blue); border-radius: 2px 2px 0 0;
+  transform: scaleX(0); transition: transform .2s;
+}
+.tab-btn.active { color: var(--text); }
+.tab-btn.active::after { transform: scaleX(1); }
+
+.tab-content { flex: 1; overflow-y: auto; padding: 20px; }
+.tab-pane { display: none; }
+.tab-pane.active { display: block; }
+
+/* ============================================================
+   INPUT PANEL
+============================================================ */
+.card {
+  background: var(--s1); border: 1px solid var(--border);
+  border-radius: var(--radius-lg); overflow: hidden; margin-bottom: 16px;
+}
+.card-header {
+  padding: 12px 18px; border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+  background: var(--s2);
+}
+.card-title {
+  font-size: 12px; font-weight: 700; letter-spacing: 0.2px;
+  display: flex; align-items: center; gap: 8px;
+}
+.card-title-bar { width: 3px; height: 12px; background: var(--blue); border-radius: 2px; }
+.card-body { padding: 18px; }
+
+.input-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.col-full { grid-column: 1 / -1; }
+
+/* kegiatan info box (inside input panel) */
+.keg-info {
+  background: var(--s2); border: 1px solid var(--border2);
+  border-radius: var(--radius); padding: 10px 13px; margin-bottom: 12px;
+}
+.keg-info-title {
+  font-family: var(--mono); font-size: 10px; color: var(--text3);
+  text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px;
+}
+.keg-info-empty { font-size: 11px; color: var(--muted); font-style: italic; }
+.keg-info-row {
+  display: flex; align-items: center; gap: 8px; padding: 5px 0;
+  border-bottom: 1px solid var(--border); cursor: pointer;
+  transition: background .1s; border-radius: 4px; padding: 5px 6px; margin: 0 -6px;
+}
+.keg-info-row:last-child { border-bottom: none; }
+.keg-info-row:hover { background: var(--blue-dim); }
+.keg-info-row.selected { background: var(--blue-dim); }
+.keg-info-row .ki-name { font-size: 11px; color: var(--text2); flex: 1; }
+.keg-info-row .ki-check {
+  font-size: 12px; color: var(--blue); opacity: 0;
+}
+.keg-info-row.selected .ki-check { opacity: 1; }
+
+/* ============================================================
+   BUTTONS
+============================================================ */
+.btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 7px 16px; border-radius: var(--radius); border: none;
+  font-family: var(--sans); font-size: 12px; font-weight: 600;
+  cursor: pointer; transition: all .15s; line-height: 1;
+}
+.btn-primary { background: var(--blue); color: #fff; }
+.btn-primary:hover { background: #2563eb; }
+.btn-ghost {
+  background: var(--s2); color: var(--text2); border: 1px solid var(--border2);
+}
+.btn-ghost:hover { border-color: var(--blue); color: var(--blue); }
+.btn-sm { padding: 5px 12px; font-size: 11px; }
+.btn-block { width: 100%; justify-content: center; }
+
+/* ============================================================
+   REKAP TABLE
+============================================================ */
+.filter-row {
+  display: flex; gap: 8px; margin-bottom: 14px; flex-wrap: wrap; align-items: center;
+}
+.filter-row input, .filter-row select {
+  background: var(--s1); border: 1px solid var(--border); color: var(--text);
+  padding: 6px 11px; border-radius: var(--radius); font-size: 12px;
+  font-family: var(--sans); outline: none; transition: border-color .15s;
+}
+.filter-row input { flex: 1; min-width: 160px; }
+.filter-row input:focus, .filter-row select:focus { border-color: var(--blue); }
+
+.tbl-wrap { overflow-x: auto; border-radius: var(--radius-lg); }
+table { width: 100%; border-collapse: collapse; font-size: 12px; }
+thead th {
+  background: var(--s2); padding: 9px 13px;
+  font-family: var(--mono); font-size: 10px; color: var(--text3);
+  text-transform: uppercase; letter-spacing: 0.8px; font-weight: 500;
+  border-bottom: 1px solid var(--border); text-align: left; white-space: nowrap;
+  border-right: 1px solid var(--border);
+}
+thead th:last-child { border-right: none; }
+tbody tr { border-bottom: 1px solid rgba(31,45,69,.5); transition: background .1s; }
+tbody tr:last-child { border-bottom: none; }
+tbody tr:hover { background: rgba(255,255,255,.012); }
+tbody td {
+  padding: 9px 13px; vertical-align: middle;
+  border-right: 1px solid rgba(31,45,69,.3);
+}
+tbody td:last-child { border-right: none; }
+.td-mono { font-family: var(--mono); color: var(--text2); font-size: 11px; white-space: nowrap; }
+.td-bold { font-weight: 600; }
+.td-dim { color: var(--text2); font-size: 11px; }
+.td-link a {
+  color: var(--blue); font-family: var(--mono); font-size: 11px;
+  text-decoration: none; display: inline-flex; align-items: center; gap: 4px;
+}
+.td-link a:hover { text-decoration: underline; }
+.chk-on {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 20px; height: 20px; border-radius: 4px;
+  background: var(--green-dim); color: var(--green); font-size: 10px;
+  border: 1px solid var(--green-bd);
+}
+.chk-off {
+  display: inline-block; width: 20px; height: 20px; border-radius: 4px;
+  background: var(--s2); border: 1px solid var(--border);
+}
+.chk-cell { text-align: center; }
+
+.type-badge {
+  font-family: var(--mono); font-size: 10px; font-weight: 600;
+  padding: 1px 7px; border-radius: 20px; border: 1px solid;
+}
+.type-cetak { background: var(--amber-dim); color: var(--amber); border-color: rgba(245,158,11,.3); }
+.type-online { background: var(--teal-dim); color: var(--teal); border-color: rgba(6,182,212,.3); }
+
+/* ============================================================
+   SUMMARY
+============================================================ */
+.stat-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 12px; margin-bottom: 20px; }
+.stat-card {
+  background: var(--s1); border: 1px solid var(--border); border-radius: var(--radius-lg);
+  padding: 16px; text-align: center;
+}
+.stat-val { font-family: var(--mono); font-size: 28px; font-weight: 600; color: var(--blue); }
+.stat-label { font-size: 11px; color: var(--text3); margin-top: 3px; }
+
+.sum-blocks { display: flex; flex-direction: column; gap: 14px; }
+
+.sum-date-block {
+  background: var(--s1); border: 1px solid var(--border);
+  border-radius: var(--radius-lg); overflow: hidden;
+}
+.sdb-hdr {
+  background: var(--s2); padding: 10px 16px;
+  display: flex; align-items: center; justify-content: space-between;
+  border-bottom: 1px solid var(--border);
+}
+.sdb-date { font-family: var(--mono); font-size: 12px; font-weight: 600; color: var(--text); }
+.sdb-pills { display: flex; gap: 7px; }
+.sdb-pill {
+  font-family: var(--mono); font-size: 10px; font-weight: 500;
+  padding: 2px 9px; border-radius: 20px; border: 1px solid;
+}
+.pill-b { background: var(--blue-dim); color: var(--blue); border-color: var(--blue-bd); }
+.pill-m { background: var(--green-dim); color: var(--green); border-color: var(--green-bd); }
+.pill-c { background: var(--amber-dim); color: var(--amber); border-color: rgba(245,158,11,.3); }
+.pill-o { background: var(--teal-dim); color: var(--teal); border-color: rgba(6,182,212,.3); }
+
+.sdb-kode-row {
+  display: grid; grid-template-columns: auto 1fr auto;
+  gap: 14px; padding: 13px 16px; align-items: start;
+  border-bottom: 1px solid rgba(31,45,69,.4);
+}
+.sdb-kode-row:last-child { border-bottom: none; }
+.sdb-kode-left { padding-top: 2px; }
+.sdb-kode-center { }
+.sdb-kode-nama { font-size: 13px; font-weight: 600; color: var(--text); margin-bottom: 3px; }
+.sdb-kode-jenis { font-size: 11px; color: var(--text3); font-family: var(--mono); margin-bottom: 6px; }
+.sdb-media-list { display: flex; flex-wrap: wrap; gap: 5px; }
+.sdb-media-chip {
+  font-size: 10px; padding: 2px 7px; border-radius: 20px; border: 1px solid;
+  display: inline-flex; align-items: center; gap: 4px;
+}
+.sdb-media-chip .mchip-dot { width: 5px; height: 5px; border-radius: 50%; }
+.chip-cetak { background: var(--amber-dim); color: var(--amber); border-color: rgba(245,158,11,.25); }
+.chip-cetak .mchip-dot { background: var(--amber); }
+.chip-online { background: var(--teal-dim); color: var(--teal); border-color: rgba(6,182,212,.25); }
+.chip-online .mchip-dot { background: var(--teal); }
+.chip-unknown { background: var(--s2); color: var(--text3); border-color: var(--border); }
+
+.sdb-kode-right { text-align: right; padding-top: 2px; }
+.sdb-num-big { font-family: var(--mono); font-size: 20px; font-weight: 600; color: var(--blue); line-height: 1; }
+.sdb-num-label { font-size: 10px; color: var(--text3); margin-top: 2px; }
+.sdb-num-sub { font-family: var(--mono); font-size: 12px; color: var(--text3); margin-top: 4px; }
+
+/* ============================================================
+   KODE BADGE COLORS (dynamic, cyclic palette)
+============================================================ */
+.kb { font-family: var(--mono); font-size: 10px; font-weight: 600; padding: 2px 7px; border-radius: 4px; border: 1px solid; display: inline-block; }
+
+/* ============================================================
+   EMPTY STATE
+============================================================ */
+.empty { text-align: center; padding: 56px 24px; }
+.empty-icon { font-size: 40px; margin-bottom: 10px; opacity: .5; }
+.empty-text { font-size: 13px; color: var(--text3); }
+
+/* ============================================================
+   TOAST
+============================================================ */
+.toast {
+  position: fixed; bottom: 20px; right: 20px; z-index: 999;
+  padding: 10px 18px; border-radius: var(--radius);
+  font-size: 12px; font-weight: 600;
+  transform: translateY(70px); opacity: 0; transition: all .25s;
+  pointer-events: none; max-width: 300px;
+}
+.toast.show { transform: translateY(0); opacity: 1; }
+.toast-ok { background: var(--green); color: #071a0e; }
+.toast-warn { background: var(--amber); color: #1a0f00; }
+.toast-err { background: var(--red); color: #fff; }
+
+/* ============================================================
+   MISC
+============================================================ */
+.nd { color: var(--muted); font-style: italic; }
+.divider { height: 1px; background: var(--border); margin: 8px 0; }
+.mt8 { margin-top: 8px; }
+.text-accent { color: var(--blue); }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- TOP BAR -->
+  <header class="topbar">
+    <div class="topbar-left">
+      <div class="app-logo">
+        <span class="dot"></span>
+        Rekap<strong>Berita</strong>
+      </div>
+      <span class="topbar-badge" id="totalBadge">0 Berita</span>
+    </div>
+    <div class="topbar-right">
+      <button class="btn btn-ghost btn-sm" onclick="doExport()">↓ Export</button>
+      <button class="btn btn-ghost btn-sm" onclick="document.getElementById('fileImport').click()">↑ Import</button>
+      <input type="file" id="fileImport" accept=".json" style="display:none" onchange="doImport(event)">
+    </div>
+  </header>
+
+  <div class="body">
+    <!-- ==================== SIDEBAR ==================== -->
+    <aside class="sidebar">
+      <div class="sb-scroll">
+
+        <!-- Tambah Kegiatan -->
+        <div class="sb-section">
+          <div class="sb-head">📅 Tambah Kegiatan</div>
+          <div class="fg">
+            <label>Tanggal</label>
+            <input type="date" id="kegDate">
+          </div>
+          <div class="fg">
+            <label>Kode (pilih satu)</label>
+            <div class="kode-az-grid" id="kodeAZGrid"></div>
+          </div>
+          <div class="fg mt8">
+            <label>Nama Kegiatan</label>
+            <input type="text" id="kegNama" placeholder="cth: Rapat Koordinasi Lintas OPD">
+          </div>
+          <button class="btn btn-primary btn-block btn-sm mt8" onclick="addKegiatan()">+ Tambah Kegiatan</button>
+        </div>
+
+        <!-- List Kegiatan -->
+        <div class="sb-head" style="padding:12px 16px 0; display:flex; align-items:center; justify-content:space-between;">
+          <span style="font-family:var(--mono);font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:1.5px;">📋 Database Kegiatan</span>
+          <span class="sb-head-count" id="kegCount" style="font-family:var(--mono);font-size:11px;"></span>
+        </div>
+        <div class="keg-list" id="kegList"></div>
+
+      </div>
+    </aside>
+
+    <!-- ==================== CONTENT ==================== -->
+    <div class="content">
+      <nav class="tabbar">
+        <button class="tab-btn active" onclick="switchTab('input',this)">📥 Input Berita</button>
+        <button class="tab-btn" onclick="switchTab('rekap',this)">📊 Rekapitulasi</button>
+        <button class="tab-btn" onclick="switchTab('summary',this)">📈 Summary</button>
+      </nav>
+
+      <div class="tab-content">
+
+        <!-- ========= TAB INPUT ========= -->
+        <div class="tab-pane active" id="pane-input">
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title"><span class="card-title-bar"></span>Tambah Berita Baru</div>
+            </div>
+            <div class="card-body">
+              <div class="input-grid">
+                <div class="fg">
+                  <label>Tanggal Berita *</label>
+                  <input type="date" id="bDate" onchange="onBeritaDateChange()">
+                </div>
+
+                <div class="fg">
+                  <label>Jenis Media *</label>
+                  <div class="media-type-toggle">
+                    <div class="mtt-btn" id="mttCetak" onclick="setMediaType('cetak')">📰 Cetak</div>
+                    <div class="mtt-btn" id="mttOnline" onclick="setMediaType('online')">🌐 Online</div>
+                  </div>
+                </div>
+
+                <div class="fg col-full">
+                  <label>Nama Media *</label>
+                  <div class="ac-wrap">
+                    <input type="text" id="bMedia" placeholder="Ketik nama media..."
+                      oninput="onMediaInput()" onfocus="onMediaInput()" autocomplete="off">
+                    <div class="ac-list" id="acList"></div>
+                  </div>
+                </div>
+
+                <div class="fg">
+                  <label>Nama Pewarta</label>
+                  <input type="text" id="bPewarta" placeholder="cth: Ahmad Fauzi">
+                </div>
+
+                <div class="fg">
+                  <label>Judul Berita</label>
+                  <input type="text" id="bJudul" placeholder="cth: Bupati Hadiri Rapat...">
+                </div>
+
+                <div class="fg col-full">
+                  <label>Link Berita</label>
+                  <input type="url" id="bLink" placeholder="https://...">
+                </div>
+              </div>
+
+              <!-- Kegiatan pada tanggal ini (klik untuk assign kode) -->
+              <div id="kegInfoWrap" style="display:none; margin-bottom:14px;">
+                <div class="keg-info">
+                  <div class="keg-info-title">⚡ Kegiatan pada tanggal ini — klik untuk pilih</div>
+                  <div id="kegInfoRows"></div>
+                </div>
+                <div style="font-size:10px;color:var(--text3);font-family:var(--mono);margin-top:5px;">
+                  Kode terpilih: <span id="selectedKodesDisplay" style="color:var(--blue);">—</span>
+                </div>
+              </div>
+
+              <div id="noKegInfo" style="display:none;margin-bottom:14px;">
+                <div class="keg-info">
+                  <div class="keg-info-title">⚡ Kegiatan pada tanggal ini</div>
+                  <div class="keg-info-empty">Belum ada kegiatan terdaftar di tanggal ini. Tambahkan dulu di sidebar kiri.</div>
+                </div>
+              </div>
+
+              <button class="btn btn-primary" onclick="addBerita()">✓ Simpan Berita</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- ========= TAB REKAP ========= -->
+        <div class="tab-pane" id="pane-rekap">
+          <div class="filter-row">
+            <input type="text" id="fMedia" placeholder="🔍 Cari media..." oninput="renderRekap()">
+            <select id="fTanggal" onchange="renderRekap()">
+              <option value="">Semua Tanggal</option>
+            </select>
+            <select id="fKode" onchange="renderRekap()">
+              <option value="">Semua Kode</option>
+            </select>
+            <select id="fType" onchange="renderRekap()">
+              <option value="">Semua Jenis</option>
+              <option value="cetak">Cetak</option>
+              <option value="online">Online</option>
+            </select>
+          </div>
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title"><span class="card-title-bar"></span>Tabel Rekapitulasi</div>
+              <span class="topbar-badge" id="rekapCount">0</span>
+            </div>
+            <div class="tbl-wrap" id="rekapTbl"></div>
+          </div>
+        </div>
+
+        <!-- ========= TAB SUMMARY ========= -->
+        <div class="tab-pane" id="pane-summary">
+          <div class="stat-grid" id="statGrid"></div>
+          <div class="sum-blocks" id="sumBlocks"></div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+'use strict';
+
+/* ============================================================
+   KODE DEFINITIONS A–Z
+============================================================ */
+const KODE_LABELS = {
+  A:'Press Conference / Konferensi Pers',
+  B:'Kunjungan Kerja / Kunker',
+  C:'Rapat / Rapat Koordinasi',
+  D:'Acara / Event Resmi',
+  E:'Peluncuran Program / Produk',
+  F:'Seminar / Workshop / Webinar',
+  G:'Pameran / Expo',
+  H:'Kegiatan Sosial / CSR',
+  I:'Siaran Pers / Press Release',
+  J:'Lain-lain',
+  K:'Audiensi / Pertemuan Tamu',
+  L:'Peresmian / Groundbreaking',
+  M:'Upacara / Apel Resmi',
+  N:'Pelatihan / Bimtek / Diklat',
+  O:'Inspeksi / Tinjauan Lapangan',
+  P:'Penandatanganan MoU / Dokumen',
+  Q:'Kontes / Lomba / Festival',
+  R:'Distribusi / Penyerahan Bantuan',
+  S:'Pelantikan / Serah Terima Jabatan',
+  T:'Pembukaan / Penutupan Acara',
+  U:'Rapat Paripurna / Sidang',
+  V:'Deklarasi / Pernyataan Sikap',
+  W:'Kunjungan Tamu VIP/Kenegaraan',
+  X:'Pemantauan / Monitoring Lapangan',
+  Y:'Hari Peringatan / Hari Besar',
+  Z:'Kegiatan Khusus / Insidental'
+};
+
+const KODE_COLORS = {
+  A:['#3b82f6','rgba(59,130,246,.12)','rgba(59,130,246,.3)'],
+  B:['#8b5cf6','rgba(139,92,246,.12)','rgba(139,92,246,.3)'],
+  C:['#22c55e','rgba(34,197,94,.12)','rgba(34,197,94,.3)'],
+  D:['#f59e0b','rgba(245,158,11,.12)','rgba(245,158,11,.3)'],
+  E:['#06b6d4','rgba(6,182,212,.12)','rgba(6,182,212,.3)'],
+  F:['#f87171','rgba(248,113,113,.12)','rgba(248,113,113,.3)'],
+  G:['#a3e635','rgba(163,230,53,.12)','rgba(163,230,53,.3)'],
+  H:['#fb923c','rgba(251,146,60,.12)','rgba(251,146,60,.3)'],
+  I:['#e879f9','rgba(232,121,249,.12)','rgba(232,121,249,.3)'],
+  J:['#94a3b8','rgba(148,163,184,.12)','rgba(148,163,184,.3)'],
+  K:['#2dd4bf','rgba(45,212,191,.12)','rgba(45,212,191,.3)'],
+  L:['#fbbf24','rgba(251,191,36,.12)','rgba(251,191,36,.3)'],
+  M:['#60a5fa','rgba(96,165,250,.12)','rgba(96,165,250,.3)'],
+  N:['#c084fc','rgba(192,132,252,.12)','rgba(192,132,252,.3)'],
+  O:['#4ade80','rgba(74,222,128,.12)','rgba(74,222,128,.3)'],
+  P:['#f472b6','rgba(244,114,182,.12)','rgba(244,114,182,.3)'],
+  Q:['#facc15','rgba(250,204,21,.12)','rgba(250,204,21,.3)'],
+  R:['#34d399','rgba(52,211,153,.12)','rgba(52,211,153,.3)'],
+  S:['#818cf8','rgba(129,140,248,.12)','rgba(129,140,248,.3)'],
+  T:['#38bdf8','rgba(56,189,248,.12)','rgba(56,189,248,.3)'],
+  U:['#fb7185','rgba(251,113,133,.12)','rgba(251,113,133,.3)'],
+  V:['#a78bfa','rgba(167,139,250,.12)','rgba(167,139,250,.3)'],
+  W:['#86efac','rgba(134,239,172,.12)','rgba(134,239,172,.3)'],
+  X:['#fdba74','rgba(253,186,116,.12)','rgba(253,186,116,.3)'],
+  Y:['#67e8f9','rgba(103,232,249,.12)','rgba(103,232,249,.3)'],
+  Z:['#d1d5db','rgba(209,213,219,.12)','rgba(209,213,219,.3)']
+};
+
+function kBadge(kode, small=false) {
+  const c = KODE_COLORS[kode] || ['#94a3b8','rgba(148,163,184,.12)','rgba(148,163,184,.3)'];
+  return `<span class="kb" style="color:${c[0]};background:${c[1]};border-color:${c[2]};font-size:${small?'9px':'10px'}">${kode}</span>`;
+}
+
+/* ============================================================
+   PERSISTENCE — localStorage
+============================================================ */
+const LS_KEG    = 'rekap_kegiatan_v1';
+const LS_BERITA = 'rekap_berita_v1';
+
+function saveData() {
+  try {
+    localStorage.setItem(LS_KEG,    JSON.stringify(dbKegiatan));
+    localStorage.setItem(LS_BERITA, JSON.stringify(dbBerita));
+  } catch(e) { console.warn('localStorage save failed', e); }
+}
+
+function loadData() {
+  try {
+    const k = localStorage.getItem(LS_KEG);
+    const b = localStorage.getItem(LS_BERITA);
+    if (k) dbKegiatan = JSON.parse(k);
+    if (b) dbBerita   = JSON.parse(b);
+  } catch(e) { console.warn('localStorage load failed', e); }
+  // recalc next IDs
+  nextKegId    = dbKegiatan.length ? Math.max(...dbKegiatan.map(k=>k.id)) + 1 : 1;
+  nextBeritaId = dbBerita.length   ? Math.max(...dbBerita.map(b=>b.id))   + 1 : 1;
+}
+
+/* ============================================================
+   STATE
+============================================================ */
+// dbKegiatan: { id, tanggal, kode, nama }
+let dbKegiatan = [];
+// dbBerita: { id, tanggal, mediaType('cetak'|'online'), media, pewarta, judul, link, kodes:[] }
+let dbBerita   = [];
+
+let nextKegId    = 1;
+let nextBeritaId = 1;
+let currentTab       = 'input';
+let currentMediaType = null;   // 'cetak' | 'online'
+let selectedKodes    = [];     // kodes selected in input form
+
+/* ============================================================
+   INIT
+============================================================ */
+function init() {
+  loadData();           // ← baca dari localStorage
+  buildKodeAZGrid();
+  renderKegList();
+  renderRekap();
+  renderSummary();
+  updateBadge();
+  rebuildFilters();
+}
+
+/* ============================================================
+   KODE A–Z GRID (sidebar)
+============================================================ */
+function buildKodeAZGrid() {
+  const el = document.getElementById('kodeAZGrid');
+  el.innerHTML = Object.keys(KODE_LABELS).map(k => `
+    <div class="kaz-item">
+      <input type="checkbox" id="kcb_${k}" value="${k}">
+      <label for="kcb_${k}" title="${KODE_LABELS[k]}">${k}</label>
+    </div>
+  `).join('');
+}
+
+/* ============================================================
+   KEGIATAN
+============================================================ */
+function addKegiatan() {
+  const tanggal = document.getElementById('kegDate').value;
+  const nama    = document.getElementById('kegNama').value.trim();
+  const checked = [...document.querySelectorAll('#kodeAZGrid input:checked')];
+
+  if (!tanggal)          return toast('⚠ Pilih tanggal kegiatan','warn');
+  if (checked.length === 0) return toast('⚠ Pilih minimal satu kode','warn');
+  if (!nama)             return toast('⚠ Isi nama kegiatan','warn');
+
+  checked.forEach(cb => {
+    const kode = cb.value;
+    const existing = dbKegiatan.find(k => k.tanggal === tanggal && k.kode === kode);
+    if (existing) { existing.nama = nama; }
+    else { dbKegiatan.push({id: nextKegId++, tanggal, kode, nama}); }
+  });
+
+  dbKegiatan.sort((a,b) => a.tanggal.localeCompare(b.tanggal) || a.kode.localeCompare(b.kode));
+  document.getElementById('kegDate').value = '';
+  document.getElementById('kegNama').value = '';
+  document.querySelectorAll('#kodeAZGrid input').forEach(x => x.checked = false);
+
+  renderKegList();
+  saveData();
+  toast(`✓ Kegiatan ditambahkan (${checked.map(x=>x.value).join(', ')})`, 'ok');
+
+  // refresh info box if same date selected in input form
+  const bDate = document.getElementById('bDate').value;
+  if (bDate === tanggal) onBeritaDateChange();
+}
+
+function deleteKegiatan(id) {
+  dbKegiatan = dbKegiatan.filter(k => k.id !== id);
+  saveData();
+  renderKegList();
+  const bDate = document.getElementById('bDate').value;
+  if (bDate) onBeritaDateChange();
+  if (currentTab === 'summary') renderSummary();
+}
+
+function renderKegList() {
+  const el = document.getElementById('kegList');
+  document.getElementById('kegCount').textContent = dbKegiatan.length;
+
+  if (!dbKegiatan.length) {
+    el.innerHTML = '<div class="nd" style="padding:12px;font-size:12px;">Belum ada kegiatan</div>';
+    return;
+  }
+
+  const byDate = {};
+  dbKegiatan.forEach(k => { (byDate[k.tanggal] = byDate[k.tanggal]||[]).push(k); });
+
+  el.innerHTML = Object.entries(byDate).map(([tgl, items]) => `
+    <div class="keg-card">
+      <div class="keg-date-header">
+        <span class="keg-date-str">${fmtDate(tgl)}</span>
+      </div>
+      <div class="keg-rows">
+        ${items.map(item => `
+          <div class="keg-row">
+            ${kBadge(item.kode)}
+            <span class="keg-nama">${item.nama}</span>
+            <button class="del-btn" onclick="deleteKegiatan(${item.id})">✕</button>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  `).join('');
+}
+
+/* ============================================================
+   MEDIA TYPE TOGGLE
+============================================================ */
+function setMediaType(type) {
+  currentMediaType = type;
+  document.getElementById('mttCetak').className  = 'mtt-btn' + (type==='cetak'?' active-cetak':'');
+  document.getElementById('mttOnline').className = 'mtt-btn' + (type==='online'?' active-online':'');
+  // rerender autocomplete with type filter
+  onMediaInput();
+}
+
+/* ============================================================
+   MEDIA AUTOCOMPLETE
+============================================================ */
+function getKnownMedia() {
+  // Build unique media list from dbBerita
+  const map = {};
+  dbBerita.forEach(b => {
+    if (!map[b.media]) map[b.media] = b.mediaType;
+  });
+  return map; // { "TV One": "cetak", ... }
+}
+
+function onMediaInput() {
+  const val = document.getElementById('bMedia').value.trim().toLowerCase();
+  const known = getKnownMedia();
+  const acEl  = document.getElementById('acList');
+
+  const matches = Object.entries(known).filter(([name]) =>
+    !val || name.toLowerCase().includes(val)
+  );
+
+  if (!matches.length) { acEl.className = 'ac-list'; return; }
+
+  acEl.innerHTML = matches.map(([name, type]) => `
+    <div class="ac-item" onmousedown="selectMedia('${name.replace(/'/,"\\'")}','${type}')">
+      <span class="ac-type-dot ${type==='cetak'?'dot-cetak':'dot-online'}"></span>
+      <span>${name}</span>
+      <span style="font-size:10px;color:var(--text3);font-family:var(--mono);margin-left:auto;">${type}</span>
+    </div>
+  `).join('');
+  acEl.className = 'ac-list open';
+}
+
+function selectMedia(name, type) {
+  document.getElementById('bMedia').value = name;
+  document.getElementById('acList').className = 'ac-list';
+  if (type) setMediaType(type);
+}
+
+document.addEventListener('click', e => {
+  if (!e.target.closest('.ac-wrap')) {
+    document.getElementById('acList').className = 'ac-list';
+  }
+});
+
+/* ============================================================
+   BERITA DATE CHANGE — show kegiatan on that date
+============================================================ */
+function onBeritaDateChange() {
+  const tgl = document.getElementById('bDate').value;
+  selectedKodes = [];
+  updateSelectedKodesDisplay();
+
+  const kegToday = dbKegiatan.filter(k => k.tanggal === tgl);
+  const wrap    = document.getElementById('kegInfoWrap');
+  const noKeg   = document.getElementById('noKegInfo');
+  const rowsEl  = document.getElementById('kegInfoRows');
+
+  if (!tgl) { wrap.style.display = 'none'; noKeg.style.display = 'none'; return; }
+
+  if (!kegToday.length) {
+    wrap.style.display = 'none';
+    noKeg.style.display = 'block';
+    return;
+  }
+
+  wrap.style.display = 'block';
+  noKeg.style.display = 'none';
+
+  rowsEl.innerHTML = kegToday.map(k => `
+    <div class="keg-info-row" id="kirow_${k.id}" onclick="toggleKode('${k.kode}',${k.id})">
+      ${kBadge(k.kode)}
+      <span class="ki-name">${k.nama}</span>
+      <span class="ki-check">✔</span>
+    </div>
+  `).join('');
+}
+
+function toggleKode(kode, rowId) {
+  const row = document.getElementById('kirow_' + rowId);
+  if (selectedKodes.includes(kode)) {
+    selectedKodes = selectedKodes.filter(k => k !== kode);
+    row.classList.remove('selected');
+  } else {
+    selectedKodes.push(kode);
+    row.classList.add('selected');
+  }
+  updateSelectedKodesDisplay();
+}
+
+function updateSelectedKodesDisplay() {
+  const el = document.getElementById('selectedKodesDisplay');
+  if (el) el.textContent = selectedKodes.length ? selectedKodes.join(', ') : '—';
+}
+
+/* ============================================================
+   ADD BERITA
+============================================================ */
+function addBerita() {
+  const tanggal   = document.getElementById('bDate').value;
+  const mediaName = document.getElementById('bMedia').value.trim();
+  const pewarta   = document.getElementById('bPewarta').value.trim();
+  const judul     = document.getElementById('bJudul').value.trim();
+  const link      = document.getElementById('bLink').value.trim();
+
+  if (!tanggal)   return toast('⚠ Pilih tanggal berita','warn');
+  if (!mediaName) return toast('⚠ Nama media wajib diisi','warn');
+  if (!currentMediaType) return toast('⚠ Pilih jenis media (Cetak / Online)','warn');
+  if (!selectedKodes.length) return toast('⚠ Pilih minimal satu kegiatan','warn');
+
+  dbBerita.push({
+    id: nextBeritaId++,
+    tanggal, mediaType: currentMediaType,
+    media: mediaName, pewarta, judul, link,
+    kodes: [...selectedKodes]
+  });
+  dbBerita.sort((a,b) => a.tanggal.localeCompare(b.tanggal));
+
+  // reset
+  document.getElementById('bDate').value = '';
+  document.getElementById('bMedia').value = '';
+  document.getElementById('bPewarta').value = '';
+  document.getElementById('bJudul').value = '';
+  document.getElementById('bLink').value = '';
+  document.getElementById('kegInfoWrap').style.display = 'none';
+  document.getElementById('noKegInfo').style.display = 'none';
+  document.getElementById('acList').className = 'ac-list';
+  setMediaType(null);
+  selectedKodes = [];
+  updateSelectedKodesDisplay();
+
+  updateBadge();
+  rebuildFilters();
+  saveData();
+  toast(`✓ Berita disimpan! Kode: ${selectedKodes.join(', ') || dbBerita[dbBerita.length-1].kodes.join(', ')}`, 'ok');
+}
+
+function deleteBerita(id) {
+  dbBerita = dbBerita.filter(b => b.id !== id);
+  saveData();
+  updateBadge();
+  renderRekap();
+  renderSummary();
+  rebuildFilters();
+}
+
+/* ============================================================
+   REKAP TABLE
+============================================================ */
+function renderRekap() {
+  const fM  = (document.getElementById('fMedia')?.value||'').toLowerCase();
+  const fT  = document.getElementById('fTanggal')?.value||'';
+  const fK  = document.getElementById('fKode')?.value||'';
+  const fTy = document.getElementById('fType')?.value||'';
+
+  let data = dbBerita;
+  if (fM)  data = data.filter(b => b.media.toLowerCase().includes(fM));
+  if (fT)  data = data.filter(b => b.tanggal === fT);
+  if (fK)  data = data.filter(b => b.kodes.includes(fK));
+  if (fTy) data = data.filter(b => b.mediaType === fTy);
+
+  const allKodes = [...new Set(dbBerita.flatMap(b => b.kodes))].sort();
+
+  const el = document.getElementById('rekapTbl');
+  const countEl = document.getElementById('rekapCount');
+  if (countEl) countEl.textContent = data.length + ' Berita';
+  if (!el) return;
+
+  if (!data.length) {
+    el.innerHTML = `<div class="empty"><div class="empty-icon">📭</div><div class="empty-text">Belum ada data berita</div></div>`;
+    return;
+  }
+
+  el.innerHTML = `
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Tanggal</th>
+          <th>Jenis</th>
+          <th>Media</th>
+          <th>Pewarta</th>
+          <th>Judul</th>
+          ${allKodes.map(k => `<th title="${KODE_LABELS[k]||k}">${k}</th>`).join('')}
+          <th>Link</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        ${data.map((b,i) => `
+          <tr>
+            <td class="td-mono">${i+1}</td>
+            <td class="td-mono">${fmtDate(b.tanggal)}</td>
+            <td><span class="type-badge type-${b.mediaType||'online'}">${b.mediaType==='cetak'?'📰 Cetak':'🌐 Online'}</span></td>
+            <td class="td-bold">${b.media}</td>
+            <td class="td-dim">${b.pewarta||'<span class="nd">—</span>'}</td>
+            <td style="max-width:200px;font-size:12px;">${b.judul||'<span class="nd">—</span>'}</td>
+            ${allKodes.map(k=>`<td class="chk-cell">${b.kodes.includes(k)?'<span class="chk-on">✔</span>':'<span class="chk-off"></span>'}</td>`).join('')}
+            <td class="td-link">${b.link?`<a href="${b.link}" target="_blank">↗ buka</a>`:'<span class="nd">—</span>'}</td>
+            <td><button class="del-btn" onclick="deleteBerita(${b.id})">✕</button></td>
+          </tr>
+        `).join('')}
+      </tbody>
+    </table>
+  `;
+}
+
+/* ============================================================
+   SUMMARY
+============================================================ */
+function renderSummary() {
+  const statEl = document.getElementById('statGrid');
+  const sumEl  = document.getElementById('sumBlocks');
+  if (!statEl) return;
+
+  const total       = dbBerita.length;
+  const uMedia      = new Set(dbBerita.map(b=>b.media)).size;
+  const uDays       = new Set(dbBerita.map(b=>b.tanggal)).size;
+  const uKegiatan   = dbKegiatan.length;
+  const cetak       = dbBerita.filter(b=>b.mediaType==='cetak').length;
+  const online      = dbBerita.filter(b=>b.mediaType==='online').length;
+
+  statEl.innerHTML = `
+    <div class="stat-card"><div class="stat-val">${total}</div><div class="stat-label">Total Berita</div></div>
+    <div class="stat-card"><div class="stat-val">${uMedia}</div><div class="stat-label">Total Media</div></div>
+    <div class="stat-card"><div class="stat-val">${uDays}</div><div class="stat-label">Hari Aktif</div></div>
+    <div class="stat-card"><div class="stat-val">${uKegiatan}</div><div class="stat-label">Total Kegiatan</div></div>
+  `;
+
+  // All dates from kegiatan + berita
+  const allDates = [...new Set([
+    ...dbKegiatan.map(k=>k.tanggal),
+    ...dbBerita.map(b=>b.tanggal)
+  ])].sort();
+
+  if (!allDates.length) {
+    sumEl.innerHTML = `<div class="empty"><div class="empty-icon">📈</div><div class="empty-text">Belum ada data</div></div>`;
+    return;
+  }
+
+  sumEl.innerHTML = allDates.map(tgl => {
+    const kegDay    = dbKegiatan.filter(k => k.tanggal === tgl);
+    const beritaDay = dbBerita.filter(b => b.tanggal === tgl);
+    const mediaDay  = [...new Set(beritaDay.map(b=>b.media))];
+    const cetakDay  = beritaDay.filter(b=>b.mediaType==='cetak');
+    const onlineDay = beritaDay.filter(b=>b.mediaType==='online');
+
+    // All kodes on this day
+    const kodesDay = [...new Set([
+      ...kegDay.map(k=>k.kode),
+      ...beritaDay.flatMap(b=>b.kodes)
+    ])].sort();
+
+    const kodeRows = kodesDay.map(kode => {
+      const kegEntry    = kegDay.find(k=>k.kode===kode);
+      const namaKeg     = kegEntry ? kegEntry.nama : '—';
+      const jenisKode   = KODE_LABELS[kode]||kode;
+      const beritaKode  = beritaDay.filter(b=>b.kodes.includes(kode));
+      const mediaKode   = beritaKode.map(b=>({name:b.media,type:b.mediaType}));
+      // Unique media with type
+      const uMediaKode  = [];
+      const seen = new Set();
+      mediaKode.forEach(m => { if (!seen.has(m.name)) { seen.add(m.name); uMediaKode.push(m); }});
+
+      const chips = uMediaKode.map(m => `
+        <span class="sdb-media-chip chip-${m.type||'unknown'}">
+          <span class="mchip-dot"></span>${m.name}
+        </span>
+      `).join('');
+
+      return `
+        <div class="sdb-kode-row">
+          <div class="sdb-kode-left">${kBadge(kode)}</div>
+          <div class="sdb-kode-center">
+            <div class="sdb-kode-nama">${namaKeg}</div>
+            <div class="sdb-kode-jenis">${jenisKode}</div>
+            <div class="sdb-media-list">
+              ${uMediaKode.length ? chips : '<span class="nd" style="font-size:11px;">Belum ada berita</span>'}
+            </div>
+          </div>
+          <div class="sdb-kode-right">
+            <div class="sdb-num-big">${beritaKode.length}</div>
+            <div class="sdb-num-label">Berita</div>
+            <div class="sdb-num-sub">${uMediaKode.length} media</div>
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    return `
+      <div class="sum-date-block">
+        <div class="sdb-hdr">
+          <div class="sdb-date">📅 ${fmtDate(tgl)}</div>
+          <div class="sdb-pills">
+            <span class="sdb-pill pill-b">🗞 ${beritaDay.length} Berita</span>
+            <span class="sdb-pill pill-m">📺 ${mediaDay.length} Media</span>
+            ${cetakDay.length?`<span class="sdb-pill pill-c">📰 ${cetakDay.length} Cetak</span>`:''}
+            ${onlineDay.length?`<span class="sdb-pill pill-o">🌐 ${onlineDay.length} Online</span>`:''}
+          </div>
+        </div>
+        ${kodeRows || '<div style="padding:12px 16px;" class="nd">Belum ada data</div>'}
+      </div>
+    `;
+  }).join('');
+}
+
+/* ============================================================
+   HELPERS
+============================================================ */
+function fmtDate(str) {
+  if (!str) return '—';
+  const d = new Date(str + 'T00:00:00');
+  return d.toLocaleDateString('id-ID',{weekday:'short',day:'numeric',month:'short',year:'numeric'});
+}
+
+function updateBadge() {
+  document.getElementById('totalBadge').textContent = dbBerita.length + ' Berita';
+}
+
+function rebuildFilters() {
+  const dates = [...new Set(dbBerita.map(b=>b.tanggal))].sort();
+  const fT = document.getElementById('fTanggal');
+  if (fT) {
+    const cur = fT.value;
+    fT.innerHTML = '<option value="">Semua Tanggal</option>' +
+      dates.map(d=>`<option value="${d}"${d===cur?' selected':''}>${fmtDate(d)}</option>`).join('');
+  }
+
+  const allKodes = [...new Set(dbBerita.flatMap(b=>b.kodes))].sort();
+  const fK = document.getElementById('fKode');
+  if (fK) {
+    const cur = fK.value;
+    fK.innerHTML = '<option value="">Semua Kode</option>' +
+      allKodes.map(k=>`<option value="${k}"${k===cur?' selected':''}>${k} – ${KODE_LABELS[k]||k}</option>`).join('');
+  }
+}
+
+function switchTab(tab, btn) {
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  document.querySelectorAll('.tab-pane').forEach(p=>p.classList.remove('active'));
+  document.getElementById('pane-'+tab).classList.add('active');
+  currentTab = tab;
+  if (tab==='rekap')   { rebuildFilters(); renderRekap(); }
+  if (tab==='summary') renderSummary();
+}
+
+function toast(msg, type='ok') {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = `toast show toast-${type}`;
+  clearTimeout(el._t);
+  el._t = setTimeout(()=>el.classList.remove('show'), 2800);
+}
+
+/* ============================================================
+   EXPORT / IMPORT
+============================================================ */
+function doExport() {
+  const payload = JSON.stringify({kegiatan:dbKegiatan, berita:dbBerita}, null, 2);
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([payload],{type:'application/json'}));
+  a.download = 'rekap_berita_' + new Date().toISOString().slice(0,10) + '.json';
+  a.click();
+  toast('✓ Data berhasil diexport!','ok');
+}
+
+function doImport(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const r = new FileReader();
+  r.onload = ev => {
+    try {
+      const d = JSON.parse(ev.target.result);
+      if (d.kegiatan) dbKegiatan = d.kegiatan;
+      if (d.berita)   dbBerita   = d.berita;
+      nextKegId    = Math.max(0, ...dbKegiatan.map(k=>k.id)) + 1;
+      nextBeritaId = Math.max(0, ...dbBerita.map(b=>b.id)) + 1;
+      updateBadge(); renderKegList(); renderRekap(); renderSummary(); rebuildFilters();
+      saveData();
+      toast('✓ Data berhasil diimport! Data tersimpan otomatis.','ok');
+    } catch { toast('⚠ Format JSON tidak valid','err'); }
+  };
+  r.readAsText(file);
+  e.target.value = '';
+}
+
+/* ============================================================
+   START
+============================================================ */
+init();
+</script>
+</body>
+</html>
