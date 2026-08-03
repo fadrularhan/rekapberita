@@ -171,7 +171,7 @@ function mediaById(id){ return data.media.find(m => m.id === id); }
 
 async function loadData(){
   try{
-    const res = await window.storage.get(STORAGE_KEY, false);
+    const res = await window.storage.get(STORAGE_KEY, true);
     if(res && res.value){
       const parsed = JSON.parse(res.value);
       data.media = parsed.media || [];
@@ -183,7 +183,7 @@ async function loadData(){
 }
 async function persist(){
   try{
-    await window.storage.set(STORAGE_KEY, JSON.stringify(data), false);
+    await window.storage.set(STORAGE_KEY, JSON.stringify(data), true);
     setStatus('Tersimpan otomatis');
   }catch(e){
     setStatus('Gagal menyimpan — coba lagi');
@@ -313,6 +313,7 @@ function render(){
       </nav>
       <div class="sidebar-footer">
         <div class="status" id="storage-status">Tersimpan otomatis</div>
+        <div class="status" style="margin-bottom:8px;">Data dibagikan — semua yang membuka file ini melihat data yang sama</div>
         <button class="reset-btn" id="reset-btn">Hapus Semua Data</button>
       </div>
     </aside>
