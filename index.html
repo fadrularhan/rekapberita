@@ -110,6 +110,16 @@ tr:last-child td{border-bottom:none;}
 .rank-3{background:#E3D6B6;color:#5C441A;}
 .row-top .media-cell{font-weight:600;}
 
+.checklist-toolbar{display:flex;gap:14px;margin-bottom:10px;}
+.checklist-toolbar button{padding:5px 4px;}
+.media-checklist{display:flex;flex-wrap:wrap;gap:8px;padding:14px;background:#FCFBF8;border:1px solid var(--line);border-radius:8px;}
+.media-chip{
+  display:flex;align-items:center;gap:7px;font-size:13.5px;padding:7px 12px;border:1px solid var(--line);
+  border-radius:20px;background:#fff;cursor:pointer;user-select:none;transition:.12s;
+}
+.media-chip:hover{border-color:var(--accent);}
+.media-chip input{accent-color:var(--accent);width:15px;height:15px;cursor:pointer;}
+.media-chip:has(input:checked){background:var(--accent-soft);border-color:var(--accent);font-weight:600;color:var(--accent-dark);}
 .filter-row{display:flex;gap:12px;align-items:flex-end;margin-bottom:18px;flex-wrap:wrap;}
 .media-tag{display:inline-block;background:#EFEBE0;border-radius:4px;padding:2px 7px;font-size:12px;margin:1px 3px 1px 0;color:var(--ink);}
 .section-label{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--text-muted);font-weight:600;margin:0 0 12px;}
@@ -213,10 +223,12 @@ function deleteMedia(id){
 }
 
 /* ---------- ENTRIES ---------- */
-function addEntry(tanggal, mediaId, judul){
+function addEntries(tanggal, mediaIds, judul){
   judul = judul.trim();
-  if(!tanggal || !mediaId || !judul) return;
-  data.entries.push({ id: uid(), tanggal, mediaId, judul });
+  if(!tanggal || !mediaIds.length || !judul) return;
+  mediaIds.forEach(mediaId => {
+    data.entries.push({ id: uid(), tanggal, mediaId, judul });
+  });
   state.entryDate = tanggal;
   persist(); render();
 }
@@ -403,7 +415,9 @@ function renderInputTab(main){
     .filter(e => state.inputMonthFilter === 'all' || monthKey(e.tanggal) === state.inputMonthFilter)
     .sort((a,b) => b.tanggal.localeCompare(a.tanggal) || b.id.localeCompare(a.id));
 
-  const mediaOptions = data.media.map(m => `<option value="${m.id}">${escapeHtml(m.nama)}</option>`).join('');
+  const mediaChecklist = data.media.map(m =>
+    `<label class="media-chip"><input type="checkbox" class="media-checkbox" value="${m.id}"> ${escapeHtml(m.nama)}</label>`
+  ).join('');
 
   const rows = filtered.map(e => {
     const m = mediaById(e.mediaId);
@@ -436,13 +450,22 @@ function renderInputTab(main){
 
     <div class="card">
       <h3>Tambah Berita</h3>
-      <form class="inline-form" id="form-add-entry">
-        <div class="field"><label>Tanggal</label><input type="date" id="input-tanggal" value="${state.entryDate}" required></div>
-        <div class="field grow"><label>Media</label><select id="input-media" required><option value="" disabled selected>Pilih media…</option>${mediaOptions}</select></div>
-        <div class="field grow"><label>Judul Berita</label><input type="text" id="input-judul" placeholder="Judul berita yang diupload" required></div>
-        <button type="submit" class="btn-primary">Simpan Berita</button>
+      <form id="form-add-entry">
+        <div class="inline-form" style="margin-bottom:16px;">
+          <div class="field"><label>Tanggal</label><input type="date" id="input-tanggal" value="${state.entryDate}" required></div>
+          <div class="field grow"><label>Judul Berita</label><input type="text" id="input-judul" placeholder="Judul berita yang diupload" required></div>
+        </div>
+        <div class="field" style="margin-bottom:10px;">
+          <label>Media yang Upload (bisa pilih lebih dari satu)</label>
+        </div>
+        <div class="checklist-toolbar">
+          <button type="button" class="btn-small btn-edit" id="btn-pilih-semua">Pilih Semua</button>
+          <button type="button" class="btn-small btn-cancel" id="btn-kosongkan">Kosongkan</button>
+        </div>
+        <div class="media-checklist">${mediaChecklist}</div>
+        <button type="submit" class="btn-primary" style="margin-top:16px;">Simpan Berita</button>
       </form>
-      <p class="muted" style="margin-top:10px;">Tambahkan beberapa baris untuk tanggal yang sama jika ada 2–3 berita dalam satu hari — tanggal akan otomatis diingat.</p>
+      <p class="muted" style="margin-top:10px;">Satu judul berita bisa langsung dicatat untuk beberapa media sekaligus — tanggal akan otomatis diingat untuk input berikutnya.</p>
     </div>
 
     <div class="card">
@@ -467,9 +490,17 @@ function renderInputTab(main){
 
   document.getElementById('form-add-entry').addEventListener('submit', ev => {
     ev.preventDefault();
-    addEntry(document.getElementById('input-tanggal').value, document.getElementById('input-media').value, document.getElementById('input-judul').value);
+    const checked = [...main.querySelectorAll('.media-checkbox:checked')].map(cb => cb.value);
+    if(checked.length === 0){ alert('Pilih minimal satu media.'); return; }
+    addEntries(document.getElementById('input-tanggal').value, checked, document.getElementById('input-judul').value);
   });
   document.getElementById('filter-bulan').addEventListener('change', ev => { state.inputMonthFilter = ev.target.value; render(); });
+  document.getElementById('btn-pilih-semua').addEventListener('click', () => {
+    main.querySelectorAll('.media-checkbox').forEach(cb => cb.checked = true);
+  });
+  document.getElementById('btn-kosongkan').addEventListener('click', () => {
+    main.querySelectorAll('.media-checkbox').forEach(cb => cb.checked = false);
+  });
   main.querySelectorAll('[data-edit-entry]').forEach(b => b.addEventListener('click', () => startEditEntry(b.dataset.editEntry)));
   main.querySelectorAll('[data-del-entry]').forEach(b => b.addEventListener('click', () => deleteEntry(b.dataset.delEntry)));
   main.querySelectorAll('[data-cancel-entry]').forEach(b => b.addEventListener('click', cancelEditEntry));
